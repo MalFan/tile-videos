@@ -59,7 +59,7 @@ def combine_images(images, num_videos):
 
     return vis
 
-def tile_video(config_file_name, output_file_name):
+def tile_video(config_file, output_file):
     video_names = []
     starting_times = []
     starting_frames = []
@@ -72,7 +72,7 @@ def tile_video(config_file_name, output_file_name):
                   '5':(1920, 720), '6':(1920, 720),
                   '7':(1920, 1080), '8':(1920, 1080), '9':(1920, 1080)}
 
-    with open(config_file_name, 'r') as f:
+    with open(config_file, 'r') as f:
         for line in f:
             video_content = line.rstrip('\n').split(' ')
 
@@ -121,7 +121,7 @@ def tile_video(config_file_name, output_file_name):
     # Define the codec and create VideoWriter object
     fourcc = cv2.cv.CV_FOURCC('m', 'p', '4', 'v')
 
-    out = cv2.VideoWriter(output_file_name, fourcc, 25, wh_pattern[str(num_videos)])
+    out = cv2.VideoWriter(output_file, fourcc, 25, wh_pattern[str(num_videos)])
 
     # Size of each tile is:
     width = 640
@@ -130,6 +130,9 @@ def tile_video(config_file_name, output_file_name):
     played = [0] * num_videos
     blank_img = create_blank()
     global_frame = 0
+    print('--------------------\n')
+    print('Processing frames...\n')
+    print('--------------------\n')
     while True:
 
         # Print to stdout
@@ -171,27 +174,36 @@ def tile_video(config_file_name, output_file_name):
 
 
 
-def mix_audio(config_file_name, audio_file_name):
-    with open(config_file_name, 'r') as f:
+def mix_audio(config_file, audio_file):
+    print('----------------\n')
+    print('Mixing audios...\n')
+    print('----------------\n')
+    with open(config_file, 'r') as f:
         delayed_audios = []
         for line in f:
             arr = line.rstrip().split(' ')
+            mp4_file = arr[0]
+            start = arr[1]
+            end = arr[2]
             offset = arr[3]
-            mp4_file_name = arr[0]
 
             file_name = arr[0].split('.')[0]
-            mp3_file_name = file_name + '.mp3'
-            delayed_mp3_file_name = file_name + '_delayed.mp3'
+            mp3_file = file_name + '.mp3'
+            trimmed_mp3_file = file_name + '_trimmed.mp3'
+            delayed_mp3_file = file_name + '_delayed.mp3'
 
             # Extract audio
-            subprocess.call('ffmpeg -i %s -b:a 192K -vn %s' % (mp4_file_name, mp3_file_name), shell=True)
+            subprocess.call('ffmpeg -i %s -b:a 192K -vn %s' % (mp4_file, mp3_file), shell=True)
+            # Trim audio according to start and end
+            subprocess.call('sox %s %s trim %s =%s' % (mp3_file, trimmed_mp3_file, start, end), shell=True)
             # Add offset to audio
-            subprocess.call('sox %s %s pad %s' % (mp3_file_name, delayed_mp3_file_name, offset), shell=True)
+            subprocess.call('sox %s %s pad %s' % (trimmed_mp3_file, delayed_mp3_file, offset), shell=True)
             # Remove temp audio
-            subprocess.call('rm %s' % (mp3_file_name), shell=True)
-            delayed_audios.append(delayed_mp3_file_name)
+            subprocess.call('rm %s' % (trimmed_mp3_file), shell=True)
+            subprocess.call('rm %s' % (mp3_file), shell=True)
+            delayed_audios.append(delayed_mp3_file)
 
-        subprocess.call('sox -m %s %s' % (' '.join(delayed_audios), audio_file_name), shell=True)
+        subprocess.call('sox -m %s %s' % (' '.join(delayed_audios), audio_file), shell=True)
 
         for delayed_audio in delayed_audios:
             # Remove temp temp delayed audio
@@ -199,22 +211,25 @@ def mix_audio(config_file_name, audio_file_name):
 
 
 
-def combine(video_file_name, audio_file_name, output_file_name):
-    subprocess.call("ffmpeg -i %s -i %s -shortest %s" % (video_file_name, audio_file_name, output_file_name), shell=True)
+def combine(video_file, audio_file, output_file):
+    print('--------------------------\n')
+    print('Combine video and audio...\n')
+    print('--------------------------\n')
+    subprocess.call("ffmpeg -i %s -i %s -shortest %s" % (video_file, audio_file, output_file), shell=True)
 
 
-def remove_temp_files(video_file_name, audio_file_name):
-    subprocess.call('rm %s' % (video_file_name), shell=True)
-    subprocess.call('rm %s' % (audio_file_name), shell=True)
+def remove_temp_files(video_file, audio_file):
+    subprocess.call('rm %s' % (video_file), shell=True)
+    subprocess.call('rm %s' % (audio_file), shell=True)
 
 
 if __name__ == '__main__':
-    config_file_name = sys.argv[1]
-    output_file_name = sys.argv[2]
+    config_file = sys.argv[1]
+    output_file = sys.argv[2]
 
-    tile_video(config_file_name, 'video_temp.mp4')
-    mix_audio(config_file_name, 'audio_temp.mp3')
+    tile_video(config_file, 'video_temp.mp4')
+    mix_audio(config_file, 'audio_temp.mp3')
 
-    combine('video_temp.mp4', 'audio_temp.mp3', output_file_name)
+    combine('video_temp.mp4', 'audio_temp.mp3', output_file)
 
     remove_temp_files('video_temp.mp4', 'audio_temp.mp3')

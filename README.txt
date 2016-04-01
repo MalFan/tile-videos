@@ -29,12 +29,13 @@ How to install these prerequisites?
         brew install sox
     Note you might need to add "sudo" as a prefix to your command in case you encounter a "Permission denied" failure.
 
+
 Usage:
 
 Command line:
     python tile_videos.py [config.txt] [output_video.mp4]
 
-Format of configuration file (note that at least two videos and at most nine videos are allowed.):
+Format of configuration file:
     [video_0.mp4] [start_time_in_seconds] [end_time_in_seconds] [offset_in_seconds]
     [video_1.mp4] [start_time_in_seconds] [end_time_in_seconds] [offset_in_seconds]
     [video_2.mp4] [start_time_in_seconds] [end_time_in_seconds] [offset_in_seconds]
@@ -50,3 +51,9 @@ Example:
     6.mp4 0 15 2.323
     7.mp4 0 13 3.302
     8.mp4 0 25 13.302
+
+Note:
+    1. At least two videos and at most nine videos are allowed.
+    2. start time means the starting point you want of the video.
+    3. Similarly, end time means the ending point you want of the video. For example, if you like the whole video to be included, the start time would be 0 and the end time would be the duration of this video.
+    4. Offset is the delay time specified for each of the video. You could have all of them non-zero, which would make the final video start with a few empty frames. Or, you could have only one of videos with an offset zero. In that case, only that video will play at the very beginning.
