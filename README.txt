@@ -5,7 +5,7 @@ Tile videos README
 :Authors:
     Desai Fan (2016-03)
 
-:Version: 1.0.1
+:Version: 1.1
 
 Introduction:
     This python program is used for combine multiple videos into a single tiled video, each of them with a time offset (delay).

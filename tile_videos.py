@@ -23,7 +23,9 @@ def combine_images(images, num_videos):
     blank_img = create_blank()
 
     # Layout arrangement
-    if num_images == 2:
+    if num_images == 1:
+        vis = images[0]
+    elif num_images == 2:
         vis = np.concatenate((images[0], images[1]), axis=1)
     elif num_images == 3:
         vis1 = np.concatenate((images[0], images[1]), axis=1)
@@ -66,8 +68,11 @@ def tile_video(config_file, output_file):
     durations = []
     stopping_frames = []
     offsets = []
+    skipping_frames = []
 
-    wh_pattern = {'2':(1280, 360),
+    # width/height pattern
+    wh_pattern = {'1':(640, 360),
+                  '2':(1280, 360),
                   '3':(1280, 720), '4':(1280, 720),
                   '5':(1920, 720), '6':(1920, 720),
                   '7':(1920, 1080), '8':(1920, 1080), '9':(1920, 1080)}
@@ -80,14 +85,14 @@ def tile_video(config_file, output_file):
             # Each line has:
             # 1. file name / url
             # 2. starting time of that video
-            # 3. duration of that video (could be less than the whole length)
+            # 3. ending time of that video
             # 4. global offset
             video_names.append(video_content[0])
 
             starting_time = float(video_content[1])
             starting_times.append(starting_time)
 
-            duration = float(video_content[2])
+            duration = float(video_content[2]) - starting_time
             durations.append(duration)
 
             offset = float(video_content[3])
@@ -95,8 +100,12 @@ def tile_video(config_file, output_file):
 
             # Calculate global starting and stopping frame
             fps = 25 # Usually 25
-            starting_frames.append(int(round(fps * (starting_time + offset))))
-            stopping_frames.append(int(round(fps * (starting_time + duration + offset))))
+            # How many frames should this video skip. Defined by starting time.
+            skipping_frames.append(int(round(fps * starting_time)))
+            # At which global frame should this video play. Defined by offset.
+            starting_frames.append(int(round(fps * offset)))
+            # At which global frame should this video stop. Defined by offset and duration.
+            stopping_frames.append(int(round(fps * (duration + offset))))
 
 
     num_videos = len(video_names)
@@ -112,6 +121,8 @@ def tile_video(config_file, output_file):
     for i in range(num_videos):
         # Create caps
         cap = cv2.VideoCapture(video_names[i])
+        # Skip some frames
+        cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, skipping_frames[i])
         caps.append(cap)
 
         # Set the cap video width & height might speed things up!!
@@ -130,9 +141,9 @@ def tile_video(config_file, output_file):
     played = [0] * num_videos
     blank_img = create_blank()
     global_frame = 0
-    print('--------------------\n')
-    print('Processing frames...\n')
-    print('--------------------\n')
+    print('--------------------')
+    print('Processing frames...')
+    print('--------------------')
     while True:
 
         # Print to stdout
@@ -175,9 +186,9 @@ def tile_video(config_file, output_file):
 
 
 def mix_audio(config_file, audio_file):
-    print('----------------\n')
-    print('Mixing audios...\n')
-    print('----------------\n')
+    print('----------------')
+    print('Mixing audios...')
+    print('----------------')
     with open(config_file, 'r') as f:
         delayed_audios = []
         for line in f:
@@ -212,9 +223,9 @@ def mix_audio(config_file, audio_file):
 
 
 def combine(video_file, audio_file, output_file):
-    print('--------------------------\n')
-    print('Combine video and audio...\n')
-    print('--------------------------\n')
+    print('----------------------------')
+    print('Combining video and audio...')
+    print('----------------------------')
     subprocess.call("ffmpeg -i %s -i %s -shortest %s" % (video_file, audio_file, output_file), shell=True)
 
 
